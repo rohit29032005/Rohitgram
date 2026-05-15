@@ -3,7 +3,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { db } from '@/lib/firebase';
-import { collection, query, getDocs, getCountFromServer, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, getCountFromServer, orderBy, limit, addDoc } from 'firebase/firestore';
 import { Users, FileText, Activity, Clock, ShieldCheck, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -128,6 +128,62 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Bulk Injector Tool */}
+      <div className="glass p-10 rounded-[3rem] space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-white/5 rounded-2xl">
+            <Zap className="w-6 h-6 text-yellow-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">Bulk Content Injector</h2>
+            <p className="text-muted-foreground text-sm">Paste multiple Cloudinary/Direct links (one per line) to bulk-populate your feed.</p>
+          </div>
+        </div>
+
+        <textarea 
+          id="bulk-links"
+          rows={5}
+          placeholder="https://cloudinary.com/video1.mp4&#10;https://cloudinary.com/video2.mp4..."
+          className="w-full bg-black/40 border border-white/10 rounded-[2rem] p-6 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 font-mono"
+        />
+
+        <button 
+          onClick={async () => {
+            const textarea = document.getElementById('bulk-links') as HTMLTextAreaElement;
+            const links = textarea.value.split('\n').filter(l => l.trim().startsWith('http'));
+            
+            if (links.length === 0) return alert('Please paste some valid links!');
+            
+            const btn = document.activeElement as HTMLButtonElement;
+            btn.disabled = true;
+            btn.innerText = `Injecting ${links.length} Reels...`;
+
+            for (const link of links) {
+              const contentId = Math.random().toString(36).substr(2, 9);
+              await addDoc(collection(db, 'content'), {
+                id: contentId,
+                creator_id: 'manual_bulk',
+                type: 'video',
+                media_url: link.trim(),
+                caption: "Bulk Curated Content",
+                source_link: link.trim(),
+                timestamp: new Date(),
+                ingested_at: new Date(),
+                platform: 'manual'
+              });
+            }
+
+            textarea.value = '';
+            btn.disabled = false;
+            btn.innerText = 'Bulk Inject Successful!';
+            setTimeout(() => { btn.innerText = 'Run Bulk Inject'; }, 3000);
+          }}
+          className="bg-white text-black font-bold py-4 px-10 rounded-2xl hover:bg-white/90 transition-all disabled:opacity-50"
+        >
+          Run Bulk Inject
+        </button>
       </div>
     </div>
   );

@@ -130,7 +130,7 @@ export default function CreatorsPage() {
             <motion.div 
               layout
               key={creator.id}
-              className="glass p-5 rounded-3xl group relative overflow-hidden"
+              className="glass p-5 rounded-3xl group relative overflow-hidden flex flex-col"
             >
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-white/5 overflow-hidden border border-white/10">
@@ -162,12 +162,45 @@ export default function CreatorsPage() {
                 </div>
               </div>
 
-              {/* Bottom Info */}
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-widest">
-                <span>Last Sync: {creator.last_sync ? new Date(creator.last_sync).toLocaleString() : 'Never'}</span>
-                <a href={`https://instagram.com/${creator.handle}`} target="_blank" className="hover:text-white flex items-center gap-1">
-                  Profile <ExternalLink className="w-3 h-3" />
-                </a>
+              {/* Manual Inject Section */}
+              <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-widest">
+                  <span>Last Sync: {creator.last_sync ? new Date(creator.last_sync).toLocaleString() : 'Never'}</span>
+                  <a href={`https://instagram.com/${creator.handle}`} target="_blank" className="hover:text-white flex items-center gap-1">
+                    Profile <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+                
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    placeholder="Paste Cloudinary URL..."
+                    id={`inject-${creator.id}`}
+                    className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20"
+                  />
+                  <button 
+                    onClick={async () => {
+                      const input = document.getElementById(`inject-${creator.id}`) as HTMLInputElement;
+                      if (!input.value) return;
+                      await addDoc(collection(db, 'content'), {
+                        creator_id: creator.id,
+                        type: 'video',
+                        media_url: input.value,
+                        caption: `Curated Reel: @${creator.handle}`,
+                        source_link: input.value,
+                        timestamp: new Date(),
+                        ingested_at: new Date(),
+                        platform: 'manual'
+                      });
+                      input.value = '';
+                      alert('Reel injected into feed!');
+                      queryClient.invalidateQueries({ queryKey: ['feed'] });
+                    }}
+                    className="bg-white text-black px-4 rounded-xl text-[10px] font-bold hover:bg-white/80 transition-all"
+                  >
+                    Inject
+                  </button>
+                </div>
               </div>
             </motion.div>
           ))
