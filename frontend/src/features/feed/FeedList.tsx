@@ -42,7 +42,7 @@ export const FeedList = () => {
 
   return (
     <div className="space-y-8">
-      {content?.length > 0 ? (
+      {content && content.length > 0 ? (
         content.map((item: any) => (
           <FeedCard key={item.id} content={item} />
         ))
