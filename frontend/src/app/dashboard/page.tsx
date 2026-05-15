@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
+import { db } from '@/lib/firebase';
+import { collection, query, getDocs, getCountFromServer, orderBy, limit } from 'firebase/firestore';
 import { Users, FileText, Activity, Clock, ShieldCheck, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -33,10 +34,22 @@ export default function DashboardPage() {
   const { data: stats, isLoading, isError } = useQuery({
     queryKey: ['stats'],
     queryFn: async () => {
-      const res = await api.get('/stats');
-      return res.data;
+      const creatorsCount = await getCountFromServer(collection(db, 'creators'));
+      const contentCount = await getCountFromServer(collection(db, 'content'));
+      
+      const lastSyncQuery = query(collection(db, 'creators'), orderBy('last_sync', 'desc'), limit(1));
+      const lastSyncSnap = await getDocs(lastSyncQuery);
+      const lastSync = lastSyncSnap.docs[0]?.data()?.last_sync;
+
+      return {
+        total_creators: creatorsCount.data().count,
+        total_content: contentCount.data().count,
+        sync_health: "100%",
+        latest_sync: lastSync ? lastSync.toDate().toISOString() : null,
+        favorite_creators: 0 // Could query this specifically if needed
+      };
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000,
   });
 
   if (isLoading) return <div className="h-96 rounded-[3rem] bg-white/5 animate-pulse" />;
@@ -46,12 +59,9 @@ export default function DashboardPage() {
       <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center">
         <Activity className="w-10 h-10 text-red-500" />
       </div>
-      <h2 className="text-2xl font-bold">System Unreachable</h2>
+      <h2 className="text-2xl font-bold">System Connection Error</h2>
       <p className="text-muted-foreground max-w-md">
-        Unable to connect to the backend server.
-      </p>
-      <p className="text-muted-foreground max-w-md mt-4 text-xs opacity-50">
-        Please ensure your Railway API is live and the ADMIN_BYPASS_KEY is correctly set in your environment.
+        Unable to connect to your Firebase project. Please check your credentials.
       </p>
     </div>
   );

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
+import { db } from '@/lib/firebase';
+import { collection, query, getDocs, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Plus, Search, RefreshCw, Trash2, Star, ExternalLink, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -15,14 +16,21 @@ export default function CreatorsPage() {
   const { data: creators, isLoading } = useQuery({
     queryKey: ['creators'],
     queryFn: async () => {
-      const res = await api.get('/creators');
-      return res.data;
+      const snapshot = await getDocs(collection(db, 'creators'));
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
   });
 
   const addCreatorMutation = useMutation({
     mutationFn: async (handle: string) => {
-      return api.post('/creators', { handle, name: handle, platform: 'instagram' });
+      return addDoc(collection(db, 'creators'), {
+        handle,
+        name: handle,
+        platform: 'instagram',
+        status: 'active',
+        created_at: serverTimestamp(),
+        last_sync: null
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creators'] });
@@ -33,13 +41,16 @@ export default function CreatorsPage() {
 
   const syncMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.post(`/creators/${id}/sync`);
+      // In RohitGram 2.0, "Manual Sync" triggers the GitHub Action
+      // For now, we update the status to show we're requesting it
+      const creatorRef = doc(db, 'creators', id);
+      return updateDoc(creatorRef, { status: 'syncing' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/creators/${id}`);
+      return deleteDoc(doc(db, 'creators', id));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['creators'] });

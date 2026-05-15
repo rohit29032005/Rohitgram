@@ -6,14 +6,22 @@ import api from '@/lib/api';
 import { FeedCard } from './FeedCard';
 import { Loader2 } from 'lucide-react';
 
+import { db } from '@/lib/firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+
 export const FeedList = () => {
   const { data: content, isLoading, error } = useQuery({
     queryKey: ['feed'],
     queryFn: async () => {
-      const res = await api.get('/feed');
-      return res.data;
+      const q = query(
+        collection(db, 'content'),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 300000, // Refetch every 5 minutes
   });
 
   if (isLoading) {
