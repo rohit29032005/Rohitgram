@@ -41,10 +41,14 @@ export default function CreatorsPage() {
 
   const syncMutation = useMutation({
     mutationFn: async (id: string) => {
-      // In RohitGram 2.0, "Manual Sync" triggers the GitHub Action
-      // For now, we update the status to show we're requesting it
+      // 1. Update status in Firestore immediately for UI feedback
       const creatorRef = doc(db, 'creators', id);
-      return updateDoc(creatorRef, { status: 'syncing' });
+      await updateDoc(creatorRef, { status: 'syncing' });
+
+      // 2. Trigger the GitHub Action via our Vercel Bridge
+      const res = await fetch('/api/sync', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to trigger sync');
+      return res.json();
     },
   });
 
