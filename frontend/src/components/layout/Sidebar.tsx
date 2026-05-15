@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
-import { Home, Compass, PlusSquare, Heart, User, Settings, Bookmark, LayoutDashboard } from 'lucide-react';
+import { Home, Compass, PlusSquare, Heart, User, Settings, Bookmark, LayoutDashboard, LogOut } from 'lucide-react';
 import { useUIStore } from '@/store/useUIStore';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 const baseMenuItems = [
   { id: 'home', icon: Home, label: 'Feed', path: '/' },
@@ -18,9 +21,17 @@ const adminMenuItems = [
 ];
 
 export const Sidebar = () => {
-  const { sidebarOpen, activeTab, setActiveTab, isAdmin } = useUIStore();
+  const { sidebarOpen, activeTab, setActiveTab, isAdmin, setAdmin } = useUIStore();
+  const router = useRouter();
 
   const menuItems = isAdmin ? [...baseMenuItems, ...adminMenuItems] : baseMenuItems;
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setAdmin(false);
+    localStorage.removeItem('is_admin');
+    router.push('/login');
+  };
 
   return (
     <aside className={cn(
@@ -57,15 +68,23 @@ export const Sidebar = () => {
           ))}
         </nav>
 
-        <div className="px-3 mt-auto">
-          <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-muted-foreground hover:bg-white/5 hover:text-white transition-all">
-            <User className="w-6 h-6" />
+        <div className="px-3 mt-auto space-y-2">
+          <div className="w-full flex items-center gap-4 px-4 py-3 rounded-xl bg-white/5 border border-white/5">
+            <User className="w-6 h-6 text-white" />
             {sidebarOpen && (
-              <div className="flex flex-col items-start">
-                <span className="font-medium text-sm">{isAdmin ? 'Admin' : 'Guest'}</span>
+              <div className="flex flex-col items-start overflow-hidden">
+                <span className="font-medium text-sm truncate">{isAdmin ? 'Admin' : 'Guest'}</span>
                 <span className="text-[10px] text-muted-foreground uppercase">{isAdmin ? 'Full Access' : 'View Only'}</span>
               </div>
             )}
+          </div>
+          
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-all group"
+          >
+            <LogOut className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+            {sidebarOpen && <span className="font-medium">Logout</span>}
           </button>
         </div>
       </div>
