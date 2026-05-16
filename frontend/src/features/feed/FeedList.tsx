@@ -1,14 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FeedCard } from './FeedCard';
 import { Loader2 } from 'lucide-react';
-
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 export const FeedList = () => {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const { data: content, isLoading, error } = useQuery({
     queryKey: ['feed'],
     queryFn: async () => {
@@ -18,37 +20,68 @@ export const FeedList = () => {
         limit(50)
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (data.length > 0) setActiveId(data[0].id);
+      return data;
     },
-    refetchInterval: 300000, // Refetch every 5 minutes
   });
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveId(entry.target.getAttribute('data-reel-id'));
+          }
+        });
+      },
+      { threshold: 0.6 } // Target 60% visibility for "active" state
+    );
+
+    const elements = document.querySelectorAll('.reel-container');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [content]);
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground animate-pulse">Assembling your premium feed...</p>
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-black">
+        <Loader2 className="w-10 h-10 animate-spin text-white/20" />
+        <p className="text-white/40 text-sm font-medium tracking-widest uppercase">Initializing Immersive Feed</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-20">
-        <p className="text-red-400">Failed to load feed. Please try again later.</p>
+      <div className="h-screen flex items-center justify-center bg-black">
+        <p className="text-red-400 font-medium">Failed to synchronize feed.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div 
+      ref={containerRef}
+      className="h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth hide-scrollbar bg-black"
+    >
       {content && content.length > 0 ? (
         content.map((item: any) => (
-          <FeedCard key={item.id} content={item} />
+          <div 
+            key={item.id} 
+            className="reel-container h-screen w-full snap-start snap-always"
+            data-reel-id={item.id}
+          >
+            <FeedCard 
+              content={item} 
+              isActive={activeId === item.id} 
+            />
+          </div>
         ))
       ) : (
-        <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl">
-          <p className="text-muted-foreground">No content found. Add some creators to get started!</p>
+        <div className="h-screen flex items-center justify-center text-center px-10">
+          <p className="text-muted-foreground text-lg">Your curated space is empty. Add creators to begin.</p>
         </div>
       )}
     </div>
