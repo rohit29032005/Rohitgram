@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 
 export default function BookmarksPage() {
   const { data: bookmarks, isLoading } = useQuery({
-    queryKey: ['bookmarks'],
+    queryKey: ['bookmarks', auth.currentUser?.uid],
     queryFn: async () => {
       if (!auth.currentUser) return [];
       const q = query(
@@ -19,6 +19,7 @@ export default function BookmarksPage() {
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     },
+    enabled: !!auth.currentUser,
   });
 
   if (isLoading) {
