@@ -41,18 +41,22 @@ export const FeedCard = ({ content }: FeedCardProps) => {
       </div>
 
       {/* Media */}
-      <div className="relative aspect-square bg-black group cursor-pointer">
-        <img 
-          src={content.media_url} 
-          alt="content" 
-          className="w-full h-full object-cover"
-        />
-        {content.type === 'video' || content.type === 'reel' && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="w-16 h-16 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <Play className="w-8 h-8 text-white fill-white" />
-            </div>
-          </div>
+      <div className="relative aspect-[9/16] bg-black group cursor-pointer">
+        {content.type === 'video' || content.type === 'reel' ? (
+          <video 
+            src={content.media_url} 
+            controls
+            autoPlay
+            muted
+            loop
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <img 
+            src={content.media_url} 
+            alt="content" 
+            className="w-full h-full object-cover"
+          />
         )}
       </div>
 
